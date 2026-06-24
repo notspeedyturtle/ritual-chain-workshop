@@ -7,6 +7,7 @@ export type Bounty = {
   rubric: string;
   reward: bigint;
   deadline: bigint;
+  commitmentCount: bigint;
   judged: boolean;
   finalized: boolean;
   submissionCount: bigint;
@@ -22,6 +23,7 @@ export function parseBounty(
     string,
     bigint,
     bigint,
+    bigint,
     boolean,
     boolean,
     bigint,
@@ -35,6 +37,7 @@ export function parseBounty(
     rubric,
     reward,
     deadline,
+    commitmentCount,
     judged,
     finalized,
     submissionCount,
@@ -47,6 +50,7 @@ export function parseBounty(
     rubric,
     reward,
     deadline,
+    commitmentCount,
     judged,
     finalized,
     submissionCount,
@@ -55,26 +59,33 @@ export function parseBounty(
   };
 }
 
-export type BountyStatus = "open" | "ready" | "judged" | "finalized";
+export type BountyStatus = "commit" | "reveal" | "judged" | "finalized";
 
 export function getBountyStatus(b: Bounty, nowSeconds = Date.now() / 1000): BountyStatus {
   if (b.finalized) return "finalized";
   if (b.judged) return "judged";
   const deadlinePassed = Number(b.deadline) <= nowSeconds;
-  return deadlinePassed ? "ready" : "open";
+  return deadlinePassed ? "reveal" : "commit";
 }
 
 export const STATUS_META: Record<
   BountyStatus,
   { label: string; tone: "green" | "amber" | "indigo" | "zinc" }
 > = {
-  open: { label: "Open", tone: "green" },
-  ready: { label: "Ready for judging", tone: "amber" },
+  commit: { label: "Commit phase", tone: "green" },
+  reveal: { label: "Reveal phase", tone: "amber" },
   judged: { label: "Judged", tone: "indigo" },
   finalized: { label: "Finalized", tone: "zinc" },
 };
 
-/** Can a participant still submit an answer? */
+/** Can a participant still submit a commitment? */
 export function canSubmit(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
   return !b.judged && !b.finalized && Number(b.deadline) > nowSeconds;
+}
+
+export const canCommit = canSubmit;
+
+/** Can a participant reveal an answer committed before the deadline? */
+export function canReveal(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
+  return !b.judged && !b.finalized && Number(b.deadline) <= nowSeconds;
 }
